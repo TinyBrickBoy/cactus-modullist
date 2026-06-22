@@ -1,0 +1,17 @@
+{
+  "name": "cactus-modullist",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Nuxt-Website + API fuer alle Projekte, die von der Cactus Mod abhaengen.",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "api": "node api/server.js",
+    "start": "node .output/server/index.mjs"
+  },
+  "devDependencies": {
+    "nuxt": "^3.13.0"
+  }
+}

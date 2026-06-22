@@ -1,0 +1,49 @@
+:root {
+  --bg: #0f1410;
+  --bg-soft: #161d17;
+  --card: #1c241d;
+  --card-hover: #232d23;
+  --border: #2c372d;
+  --text: #e8f0e8;
+  --text-dim: #9bb09e;
+  --accent: #57c84d;
+  --accent-soft: #3a8f33;
+  --modpack: #d8a23a;
+  --radius: 14px;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(87, 200, 77, 0.12), transparent 60%),
+    var(--bg);
+  color: var(--text);
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.55;
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.container {
+  width: min(1100px, 92vw);
+  margin: 0 auto;
+}
+
+button,
+select {
+  font: inherit;
+}
