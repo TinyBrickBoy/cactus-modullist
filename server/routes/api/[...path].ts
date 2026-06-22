@@ -1,5 +1,5 @@
-// Proxyt alle /api/**-Anfragen an die interne Standalone-API weiter.
-// Das Ziel kommt aus runtimeConfig.apiOrigin (ENV: NUXT_API_ORIGIN).
+// Proxies every /api/** request onwards to the internal standalone API.
+// The target comes from runtimeConfig.apiOrigin (env: NUXT_API_ORIGIN).
 export default defineEventHandler((event) => {
   const { apiOrigin } = useRuntimeConfig(event);
 

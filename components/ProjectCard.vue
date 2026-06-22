@@ -19,7 +19,7 @@ function formatNumber(n) {
       <span class="badge" :class="project.type">{{ project.type }}</span>
     </div>
 
-    <p class="summary">{{ project.summary || "Keine Beschreibung." }}</p>
+    <p class="summary">{{ project.summary || "No description." }}</p>
 
     <ul v-if="project.tags.length" class="tags">
       <li v-for="tag in project.tags.slice(0, 5)" :key="tag">{{ tag }}</li>
@@ -27,7 +27,7 @@ function formatNumber(n) {
 
     <div class="meta">
       <span title="Downloads">⬇ {{ downloads }}</span>
-      <span v-if="project.author" title="Autor">👤 {{ project.author }}</span>
+      <span v-if="project.author" title="Author">👤 {{ project.author }}</span>
     </div>
   </a>
 </template>
