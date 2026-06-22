@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * Start-Skript fuer den gemeinsamen Container.
+ * Start script for the shared container.
  *
- * Startet zwei Prozesse in einem Container:
- *   1. die Standalone-API (api/server.js) auf API_PORT (Default 4000)
- *   2. den Nuxt/Nitro-Server (.output/server/index.mjs) auf PORT (Default 3000)
+ * Runs two processes in a single container:
+ *   1. the standalone API (api/server.js) on API_PORT (default 4000)
+ *   2. the Nuxt/Nitro server (.output/server/index.mjs) on PORT (default 3000)
  *
- * Nitro proxyt eingehende /api/**-Anfragen an die interne API weiter.
- * Beendet sich ein Prozess, wird der andere ebenfalls gestoppt.
+ * Nitro proxies incoming /api/** requests onwards to the internal API.
+ * If one process exits, the other is stopped as well.
  */
 
 import { spawn } from "node:child_process";
@@ -26,7 +26,7 @@ function run(name, command, args, env) {
 
   child.on("exit", (code, signal) => {
     if (shuttingDown) return;
-    console.error(`[start] ${name} beendet (code=${code}, signal=${signal}) -> stoppe Container`);
+    console.error(`[start] ${name} exited (code=${code}, signal=${signal}) -> stopping container`);
     shutdown(code ?? 1);
   });
 
@@ -46,13 +46,13 @@ function shutdown(code) {
 process.on("SIGINT", () => shutdown(0));
 process.on("SIGTERM", () => shutdown(0));
 
-// 1) Standalone-API
+// 1) Standalone API
 run("api", "node", ["api/server.js"], { PORT: API_PORT });
 
-// 2) Nuxt-Server (Proxy-Ziel zeigt auf die interne API)
+// 2) Nuxt server (proxy target points at the internal API)
 run("web", "node", [".output/server/index.mjs"], {
   PORT: WEB_PORT,
   NUXT_API_ORIGIN: process.env.NUXT_API_ORIGIN || `http://127.0.0.1:${API_PORT}`,
 });
 
-console.log(`[start] API auf :${API_PORT}, Web auf :${WEB_PORT}`);
+console.log(`[start] API on :${API_PORT}, web on :${WEB_PORT}`);

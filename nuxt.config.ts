@@ -7,15 +7,15 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      title: "Cactus Addons & Modpacks",
-      htmlAttrs: { lang: "de" },
+      title: "Cactusmod Addons and Modpacks",
+      htmlAttrs: { lang: "en" },
       meta: [
         { charset: "utf-8" },
         { name: "viewport", content: "width=device-width, initial-scale=1" },
         {
           name: "description",
           content:
-            "Alle Modrinth-Projekte (Addons & Modpacks), die von der Cactus Mod abhaengen.",
+            "Every Modrinth project (addons & modpacks) that depends on the Cactus Mod.",
         },
       ],
       link: [{ rel: "icon", type: "image/svg+xml", href: "/favicon.svg" }],
@@ -23,12 +23,12 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
-    // Interner API-Origin (Standalone-Server).
-    // Zur Laufzeit per ENV NUXT_API_ORIGIN ueberschreibbar.
+    // Internal API origin (standalone server).
+    // Overridable at runtime via the NUXT_API_ORIGIN env var.
     apiOrigin: "http://127.0.0.1:4000",
     public: {
-      // Browser & SSR rufen die API ueber diesen Pfad auf
-      // -> die Server-Route server/routes/api/[...].ts proxyt weiter.
+      // Browser & SSR call the API through this path
+      // -> the server route server/routes/api/[...].ts proxies it onwards.
       apiBase: "/api",
     },
   },

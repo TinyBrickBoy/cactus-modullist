@@ -1,7 +1,7 @@
 <template>
   <footer class="footer">
     <div class="container">
-      <span>Daten von der Modrinth-API · Cactus Mod</span>
+      <span>Data from the Modrinth API · Cactus Mod</span>
       <span>tbb@onthepixel.net</span>
     </div>
   </footer>

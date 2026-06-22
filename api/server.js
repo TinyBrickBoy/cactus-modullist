@@ -2,26 +2,27 @@
 /**
  * Cactus Dependents API
  * ---------------------
- * Komplette API in einer Datei, ohne externe Abhaengigkeiten.
+ * A complete API in a single file, with no external dependencies.
  *
- * Listet alle Modrinth-Projekte, die von der Cactus Mod (NV8eFz7D) abhaengen.
- * Projekte vom Typ "mod" werden in der Ausgabe als "addon" bezeichnet.
+ * Lists every Modrinth project that depends on the Cactus Mod (NV8eFz7D).
+ * Projects of type "mod" are reported as "addon" in the output.
  *
  * Start:
  *   node server.js
  *   PORT=8080 node server.js
  *
  * Endpoints:
- *   GET /          -> Kurz-Doku (JSON)
- *   GET /all       -> Addons + Modpacks zusammen (paginiert)
- *   GET /addons    -> nur Addons (intern Typ "mod")
- *   GET /modpacks  -> nur Modpacks
+ *   GET /          -> short docs (JSON)
+ *   GET /all       -> addons + modpacks combined (paginated)
+ *   GET /addons    -> addons only (internally type "mod")
+ *   GET /modpacks  -> modpacks only
+ *   GET /versions  -> available Minecraft versions among the dependents
  *
- * Query-Parameter (auf allen Listen-Routen):
- *   ?version=1.21.1          -> auf eine Minecraft-Version filtern
- *   ?sort=popular|newest|az  -> Sortierung (Default: popular)
- *   ?page=1                  -> Seite, 1-basiert        (nur /all)
- *   ?items=20                -> Seitengroesse, 1..1000  (nur /all)
+ * Query parameters (on every list route):
+ *   ?version=1.21.1          -> filter by a Minecraft version
+ *   ?sort=popular|newest|az  -> sorting (default: popular)
+ *   ?page=1                  -> page, 1-based        (/all only)
+ *   ?items=20                -> page size, 1..1000   (/all only)
  */
 
 "use strict";
@@ -29,26 +30,26 @@
 const http = require("node:http");
 
 // ---------------------------------------------------------------------------
-// Konfiguration
+// Configuration
 // ---------------------------------------------------------------------------
 
 const config = {
   port: Number(process.env.PORT) || 3000,
   targetId: "NV8eFz7D", // Cactus Mod
   apiBase: "https://api.modrinth.com/v3",
-  // Eindeutiger User-Agent ist Pflicht, sonst blockt Modrinth den Traffic.
+  // A unique User-Agent is required, otherwise Modrinth blocks the traffic.
   userAgent: "modrinth-cactus-api/1.0 (tbb@onthepixel.net)",
-  cacheTtlMs: 5 * 60 * 1000, // 5 Minuten
+  cacheTtlMs: 5 * 60 * 1000, // 5 minutes
   pageSize: { default: 20, max: 1000 },
 };
 
 const targetUrl = `https://modrinth.com/project/${config.targetId}`;
 
 // ---------------------------------------------------------------------------
-// Modrinth-Abfrage
+// Modrinth requests
 // ---------------------------------------------------------------------------
 
-/** Fuehrt einen GET-Request gegen die Modrinth-API aus und respektiert Rate-Limits. */
+/** Performs a GET request against the Modrinth API and respects rate limits. */
 async function apiGet(path, params = {}) {
   const url = new URL(config.apiBase + path);
   for (const [key, value] of Object.entries(params)) {
@@ -66,7 +67,7 @@ async function apiGet(path, params = {}) {
 
     if (!res.ok) {
       const body = await res.text().catch(() => "");
-      throw new Error(`HTTP ${res.status} bei ${path}: ${body.slice(0, 200)}`);
+      throw new Error(`HTTP ${res.status} at ${path}: ${body.slice(0, 200)}`);
     }
 
     return res.json();
@@ -74,8 +75,8 @@ async function apiGet(path, params = {}) {
 }
 
 /**
- * Holt alle Dependents (optional auf eine MC-Version gefiltert) und bringt sie
- * in die Ausgabeform. Der Typ "mod" wird dabei zu "addon" umbenannt.
+ * Fetches all dependents (optionally filtered by a single MC version) and maps
+ * them into the output shape. The type "mod" is renamed to "addon".
  */
 async function loadDependents(gameVersion) {
   const facets = [[`dependency_project_ids:${config.targetId}`]];
@@ -105,7 +106,7 @@ async function loadDependents(gameVersion) {
   return results;
 }
 
-/** Wandelt einen Modrinth-Suchtreffer in das API-Ausgabeformat um. */
+/** Maps a Modrinth search hit into the API output format. */
 function toProject(hit) {
   const types = hit.project_types || [];
   return {
@@ -124,7 +125,7 @@ function toProject(hit) {
 }
 
 // ---------------------------------------------------------------------------
-// Cache (pro Version)
+// Cache (per version)
 // ---------------------------------------------------------------------------
 
 const cache = new Map(); // versionKey -> { at, hits }
@@ -143,10 +144,10 @@ async function getHits(gameVersion) {
 }
 
 // ---------------------------------------------------------------------------
-// Sortierung & Pagination
+// Sorting, pagination & versions
 // ---------------------------------------------------------------------------
 
-/** Sortiert nach popular (Default) | newest | az. */
+/** Sorts by popular (default) | newest | az. */
 function sortList(list, sort) {
   const arr = [...list];
 
@@ -166,15 +167,39 @@ function sortList(list, sort) {
   }
 }
 
-/** Begrenzt einen Integer auf [min, max] und faellt bei Unsinn auf fallback zurueck. */
+/** Clamps an integer to [min, max], falling back on invalid input. */
 function clampInt(value, { min, max, fallback }) {
   const n = parseInt(value, 10);
   if (!Number.isFinite(n) || n < min) return fallback;
   return max != null && n > max ? max : n;
 }
 
+/** Compares two release versions like "1.21.1" numerically, descending. */
+function compareVersionsDesc(a, b) {
+  const pa = a.split(".").map(Number);
+  const pb = b.split(".").map(Number);
+  const len = Math.max(pa.length, pb.length);
+  for (let i = 0; i < len; i++) {
+    const diff = (pb[i] || 0) - (pa[i] || 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
+/** Collects the unique release Minecraft versions across all dependents. */
+async function collectVersions() {
+  const hits = await getHits(null);
+  const set = new Set();
+  for (const hit of hits) {
+    for (const v of hit.versions) {
+      if (/^\d+\.\d+(\.\d+)?$/.test(v)) set.add(v); // releases only, no snapshots
+    }
+  }
+  return [...set].sort(compareVersionsDesc);
+}
+
 // ---------------------------------------------------------------------------
-// HTTP-Hilfen
+// HTTP helpers
 // ---------------------------------------------------------------------------
 
 function sleep(ms) {
@@ -192,21 +217,26 @@ function sendJson(res, status, body) {
 const target = { id: config.targetId, link: targetUrl };
 
 // ---------------------------------------------------------------------------
-// Routen
+// Routes
 // ---------------------------------------------------------------------------
 
 function handleIndex(res) {
   return sendJson(res, 200, {
     name: "cactus-dependents-api",
     target,
-    endpoints: ["/all", "/addons", "/modpacks"],
+    endpoints: ["/all", "/addons", "/modpacks", "/versions"],
     query: {
       version: "?version=1.21.1",
       sort: "?sort=popular | newest | az",
-      pagination: "?page=1&items=20  (items max 1000, nur /all)",
+      pagination: "?page=1&items=20  (items max 1000, /all only)",
     },
-    note: "type 'mod' wird als 'addon' ausgegeben",
+    note: "type 'mod' is reported as 'addon'",
   });
+}
+
+async function handleVersions(res) {
+  const versions = await collectVersions();
+  return sendJson(res, 200, { target, count: versions.length, versions });
 }
 
 async function handleList(res, path, searchParams) {
@@ -218,7 +248,7 @@ async function handleList(res, path, searchParams) {
   else if (path === "/modpacks") hits = hits.filter((h) => h.type === "modpack");
   hits = sortList(hits, sort);
 
-  // /addons und /modpacks: vollstaendige Liste ohne Pagination
+  // /addons and /modpacks: full list without pagination
   if (path !== "/all") {
     return sendJson(res, 200, {
       target,
@@ -229,7 +259,7 @@ async function handleList(res, path, searchParams) {
     });
   }
 
-  // /all: paginiert
+  // /all: paginated
   const items = clampInt(searchParams.get("items"), {
     min: 1,
     max: config.pageSize.max,
@@ -271,22 +301,25 @@ const server = http.createServer(async (req, res) => {
     return handleIndex(res);
   }
 
-  if (pathname === "/all" || pathname === "/addons" || pathname === "/modpacks") {
-    try {
-      return await handleList(res, pathname, url.searchParams);
-    } catch (err) {
-      return sendJson(res, 502, { error: err.message });
+  try {
+    if (pathname === "/versions") {
+      return await handleVersions(res);
     }
+    if (pathname === "/all" || pathname === "/addons" || pathname === "/modpacks") {
+      return await handleList(res, pathname, url.searchParams);
+    }
+  } catch (err) {
+    return sendJson(res, 502, { error: err.message });
   }
 
   return sendJson(res, 404, {
     error: "not found",
-    endpoints: ["/all", "/addons", "/modpacks"],
+    endpoints: ["/all", "/addons", "/modpacks", "/versions"],
   });
 });
 
 server.listen(config.port, () => {
-  console.log(`API laeuft auf http://localhost:${config.port}`);
+  console.log(`API running on http://localhost:${config.port}`);
   console.log(`  /all?sort=popular&page=1&items=20`);
-  console.log(`  /addons   /modpacks   (jeweils mit ?version= & ?sort=)`);
+  console.log(`  /addons   /modpacks   /versions   (each with ?version= & ?sort=)`);
 });

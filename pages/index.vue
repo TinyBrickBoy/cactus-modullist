@@ -1,33 +1,39 @@
 <script setup>
 const { public: { apiBase } } = useRuntimeConfig();
 
-// Filter-State
+// Filter state
 const tab = ref("all"); // all | addons | modpacks
 const sort = ref("popular"); // popular | newest | az
-const version = ref(""); // z.B. 1.21.1, leer = alle
+const version = ref(""); // e.g. 1.21.1, empty = all
 const page = ref(1);
 const items = ref(20);
 
 const tabs = [
-  { id: "all", label: "Alle" },
+  { id: "all", label: "All" },
   { id: "addons", label: "Addons" },
   { id: "modpacks", label: "Modpacks" },
 ];
 
 const sorts = [
-  { id: "popular", label: "Beliebt" },
-  { id: "newest", label: "Neueste" },
+  { id: "popular", label: "Popular" },
+  { id: "newest", label: "Newest" },
   { id: "az", label: "A–Z" },
 ];
 
-// Beim Wechsel von Tab/Sort/Version zurueck auf Seite 1.
+// Available Minecraft versions for the dropdown (from the API).
+const { data: versionData } = await useFetch(`${apiBase}/versions`, {
+  key: "cactus-versions",
+});
+const versions = computed(() => versionData.value?.versions ?? []);
+
+// Reset to page 1 whenever tab/sort/version changes.
 watch([tab, sort, version], () => {
   page.value = 1;
 });
 
 const query = computed(() => {
   const q = { sort: sort.value };
-  if (version.value.trim()) q.version = version.value.trim();
+  if (version.value) q.version = version.value;
   if (tab.value === "all") {
     q.page = page.value;
     q.items = items.value;
@@ -56,13 +62,13 @@ function go(delta) {
 <template>
   <div>
     <section class="hero">
-      <h1>Cactus Addons &amp; Modpacks</h1>
+      <h1>Cactusmod Addons and Modpacks</h1>
       <p>
-        Alle Modrinth-Projekte, die von der
+        Every Modrinth project that depends on the
         <a href="https://modrinth.com/project/NV8eFz7D" target="_blank" rel="noopener">
           Cactus Mod</a
         >
-        abhaengen — direkt aus der API.
+        — straight from the API.
       </p>
     </section>
 
@@ -80,38 +86,35 @@ function go(delta) {
       </div>
 
       <div class="filters">
-        <input
-          v-model="version"
-          class="input"
-          type="text"
-          placeholder="MC-Version (z.B. 1.21.1)"
-          inputmode="decimal"
-        />
-        <select v-model="sort" class="input">
+        <select v-model="version" class="input" aria-label="Minecraft version">
+          <option value="">All versions</option>
+          <option v-for="v in versions" :key="v" :value="v">{{ v }}</option>
+        </select>
+        <select v-model="sort" class="input" aria-label="Sort order">
           <option v-for="s in sorts" :key="s.id" :value="s.id">{{ s.label }}</option>
         </select>
       </div>
     </section>
 
     <p v-if="!pending && !error" class="count">
-      {{ total }} Projekt{{ total === 1 ? "" : "e" }}
+      {{ total }} project{{ total === 1 ? "" : "s" }}
     </p>
 
-    <div v-if="pending" class="state">Lade …</div>
+    <div v-if="pending" class="state">Loading …</div>
     <div v-else-if="error" class="state error">
-      Fehler beim Laden der API.
-      <button class="retry" @click="refresh()">Erneut versuchen</button>
+      Failed to load the API.
+      <button class="retry" @click="refresh()">Try again</button>
     </div>
-    <div v-else-if="!projects.length" class="state">Keine Projekte gefunden.</div>
+    <div v-else-if="!projects.length" class="state">No projects found.</div>
 
     <div v-else class="grid">
       <ProjectCard v-for="p in projects" :key="p.id" :project="p" />
     </div>
 
     <nav v-if="showPagination" class="pagination">
-      <button :disabled="page <= 1" @click="go(-1)">← Zurueck</button>
-      <span>Seite {{ page }} / {{ totalPages }}</span>
-      <button :disabled="page >= totalPages" @click="go(1)">Weiter →</button>
+      <button :disabled="page <= 1" @click="go(-1)">← Previous</button>
+      <span>Page {{ page }} / {{ totalPages }}</span>
+      <button :disabled="page >= totalPages" @click="go(1)">Next →</button>
     </nav>
   </div>
 </template>
@@ -182,6 +185,7 @@ function go(delta) {
   border-radius: 10px;
   padding: 9px 12px;
   outline: none;
+  cursor: pointer;
 }
 
 .input:focus {

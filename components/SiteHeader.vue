@@ -4,8 +4,8 @@
       <NuxtLink to="/" class="brand">
         <span class="logo" aria-hidden="true">🌵</span>
         <span class="brand-text">
-          <strong>Cactus</strong>
-          <small>Addons &amp; Modpacks</small>
+          <strong>Cactusmod</strong>
+          <small>Addons and Modpacks</small>
         </span>
       </NuxtLink>
       <a
@@ -14,7 +14,7 @@
         target="_blank"
         rel="noopener"
       >
-        Cactus auf Modrinth ↗
+        Cactus on Modrinth ↗
       </a>
     </div>
   </header>
